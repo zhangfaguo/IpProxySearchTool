@@ -67,7 +67,7 @@ namespace IpProxy
             this.FormClosed += Form1_FormClosed;
             closeTag = true;
 
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < 20; i++)
             {
                 System.Threading.Tasks.Task.Factory.StartNew(() =>
                 {
@@ -167,7 +167,7 @@ namespace IpProxy
                     }
                     catch (Exception ex)
                     {
-                        this.listBox2.Items.Add(ex.Message);
+                        this.listBox2.Items.Add(item.url + " err:" + ex.Message);
                     }
                 });
             }
@@ -223,7 +223,7 @@ namespace IpProxy
             {
                 if (!queue.TryDequeue(out info))
                 {
-                    System.Threading.Thread.Sleep(50);
+                    System.Threading.Thread.Sleep(10);
                     continue;
                 }
 
