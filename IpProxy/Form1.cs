@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -98,36 +100,53 @@ namespace IpProxy
         private void button1_Click(object sender, EventArgs e)
         {
             button5_Click(null, null);
-
-
-
             var txt = this.textBox1.Text.Trim();
+
             if (!string.IsNullOrEmpty(txt))
             {
                 #region Input
                 var arr = txt.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
                 System.Threading.Tasks.Task.Factory.StartNew(() =>
                 {
-                    var client = new System.Net.WebClient();
+
                     foreach (var item in arr)
                     {
                         try
                         {
-
-                            var str = client.DownloadString(item);
-                            var ms = System.Text.RegularExpressions.Regex.Matches(str, find);
-                            foreach (System.Text.RegularExpressions.Match mth in ms)
+                            var client = (HttpWebRequest)WebRequest.Create(item);
+                            var uri = new Uri(item, UriKind.Absolute);
+                            client.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
+                            client.Headers["Cache-Control"] = "no-cache";
+                            client.Headers["Pragma"] = "no-cache";
+                            client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36";
+                            client.Host = uri.Host;
+                            client.Referer = item;
+                            client.Headers["Upgrade-Insecure-Requests"] = "1";
+                            var rep = (HttpWebResponse)client.GetResponse();
+                            var stream = rep.GetResponseStream();
+                            if (rep.ContentEncoding.ToLower().Contains("gzip"))
                             {
-                                if (mth.Success)
-                                {
-                                    queue.Enqueue(new IpInfo()
-                                    {
-                                        IP = mth.Groups["ip"].Value,
-                                        Port = int.Parse(mth.Groups["port"].Value),
-                                        url = item
-                                    });
-                                }
+                                stream = new GZipStream(stream, CompressionMode.Decompress);
                             }
+                            using (var sm = new StreamReader(stream))
+                            {
+                                var str = sm.ReadToEnd();
+                                var ms = System.Text.RegularExpressions.Regex.Matches(str, find);
+                                foreach (System.Text.RegularExpressions.Match mth in ms)
+                                {
+                                    if (mth.Success)
+                                    {
+                                        queue.Enqueue(new IpInfo()
+                                        {
+                                            IP = mth.Groups["ip"].Value,
+                                            Port = int.Parse(mth.Groups["port"].Value),
+                                            url = item
+                                        });
+                                    }
+                                }
+
+                            }
+
                         }
                         catch (Exception ex)
                         {
@@ -138,39 +157,64 @@ namespace IpProxy
                 });
                 #endregion
             }
-            for (var i = 0; i < dictList.Count; i++)
-            {
-                var item = dictList[i];
-                System.Threading.Tasks.Task.Factory.StartNew(() =>
+            new System.Threading.Thread(() => {
+                for (var i = 0; i < dictList.Count; i++)
                 {
-                    var client = new System.Net.WebClient();
+                    var item = dictList[i];
+
+
 
                     try
                     {
-                        client.Headers["Accept"] = "text/html, application/xhtml+xml, image/jxr, */*";
-                        client.Headers["DNT"] = "1";
-                        client.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko";
-                        var str = client.DownloadString(item.url);
-                        var ms = System.Text.RegularExpressions.Regex.Matches(str, item.regex);
-                        foreach (System.Text.RegularExpressions.Match mth in ms)
+                        var client = (HttpWebRequest)WebRequest.Create(item.url);
+                        var uri = new Uri(item.url, UriKind.Absolute);
+                        client.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
+                        client.Headers["Cache-Control"] = "no-cache";
+                        client.Headers["Pragma"] = "no-cache";
+                        client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36";
+                        client.Host = uri.Host;
+                        client.Referer = item.url;
+                        client.Headers["Upgrade-Insecure-Requests"] = "1";
+                        client.Headers["Cookie"] = "_ydclearance=7430d4d0c5b6e6dafdb45a49-642b-4836-9dc5-56ff38e8514c-1490076867; channelid=0; sid=1490071175622631; Hm_lvt_7ed65b1cc4b810e9fd37959c9bb51b31=1490069668,1490071145,1490071576; Hm_lpvt_7ed65b1cc4b810e9fd37959c9bb51b31=1490071854; _ga=GA1.2.392719364.1490069668";
+                        var rep = (HttpWebResponse)client.GetResponse();
+                        var stream = rep.GetResponseStream();
+                        if (rep.ContentEncoding.ToLower().Contains("gzip"))
                         {
-                            if (mth.Success)
-                            {
-                                queue.Enqueue(new IpInfo()
-                                {
-                                    IP = mth.Groups["ip"].Value,
-                                    Port = int.Parse(mth.Groups["port"].Value),
-                                    url = item.url
-                                });
-                            }
+                            stream = new GZipStream(stream, CompressionMode.Decompress);
                         }
+                        using (var sm = new StreamReader(stream))
+                        {
+                            var str = sm.ReadToEnd();
+                            var ms = System.Text.RegularExpressions.Regex.Matches(str, item.regex);
+                            foreach (System.Text.RegularExpressions.Match mth in ms)
+                            {
+                                if (mth.Success)
+                                {
+                                    queue.Enqueue(new IpInfo()
+                                    {
+                                        IP = mth.Groups["ip"].Value,
+                                        Port = int.Parse(mth.Groups["port"].Value),
+                                        url = item.url
+                                    });
+                                }
+                            }
+
+                        }
+                        System.Threading.Thread.Sleep(2000);
+
+
                     }
                     catch (Exception ex)
                     {
                         this.listBox2.Items.Add(item.url + " err:" + ex.Message);
                     }
-                });
-            }
+
+                }
+            }).Start();
+         
+
+
+
 
 
         }
@@ -229,27 +273,41 @@ namespace IpProxy
 
                 try
                 {
+                    Stopwatch sw = new Stopwatch();
                     this.listBox2.Items.Add(string.Format("threed:{0} check {1}:{2}", id, info.IP, info.Port));
                     listBox2.TopIndex = listBox2.Items.Count - (int)(listBox2.Height / listBox2.ItemHeight);
-                    BClient client = new BClient();
-
-                    client.Headers["Accept"] = "text/html, application/xhtml+xml, image/jxr, */*";
-                    client.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko";
+                    var client = (HttpWebRequest)WebRequest.Create(url);
+                    var uri = new Uri(url, UriKind.Absolute);
+                    client.Timeout = 16000;
+                    client.ReadWriteTimeout = 16000;
+                    client.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
+                    client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36";
+                    client.Host = uri.Host;
+                    client.Referer = url;
                     client.Proxy = new WebProxy(info.IP, info.Port);
-                    Stopwatch sw = new Stopwatch();
                     sw.Start();
-                    var str = client.DownloadString(url);
-                    sw.Stop();
-                    if (System.Text.RegularExpressions.Regex.Match(str, regex).Success)
+                    var rep = (HttpWebResponse)client.GetResponse();
+                    var stream = rep.GetResponseStream();
+                    if (rep.ContentEncoding.ToLower().Contains("gzip"))
                     {
-                        this.listBox1.Items.Add(string.Format("threed:{0}  {1}:{2},times:{3},url:{4}", id, info.IP, info.Port, sw.ElapsedMilliseconds, info.url));
-                        list.Add(info);
-                        listBox1.TopIndex = listBox1.Items.Count - (int)(listBox1.Height / listBox1.ItemHeight);
+                        stream = new GZipStream(stream, CompressionMode.Decompress);
+                    }
+                    using (var sm = new StreamReader(stream))
+                    {
+                        var str = sm.ReadToEnd();
+                        sw.Stop();
+                        if (System.Text.RegularExpressions.Regex.Match(str, regex).Success)
+                        {
+                            this.listBox1.Items.Add(string.Format("threed:{0}  {1}:{2},times:{3},url:{4}", id, info.IP, info.Port, sw.ElapsedMilliseconds, info.url));
+                            list.Add(info);
+                            listBox1.TopIndex = listBox1.Items.Count - (int)(listBox1.Height / listBox1.ItemHeight);
+                        }
+
                     }
                 }
                 catch (Exception ex)
                 {
-
+                    Debug.WriteLine(ex);
                 }
             }
         }
@@ -333,6 +391,33 @@ namespace IpProxy
         {
             Form2 f = new Form2(this);
             f.ShowDialog();
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            var cookie = new CookieContainer();
+
+            var req = (HttpWebRequest)WebRequest.Create("http://www.ziroomapartment.com/ZRAST/project/getDetail/yyczry.html");
+            req.CookieContainer = cookie;
+            req.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
+            req.Headers["Cache-Control"] = "no-cache";
+            req.Host = "www.ziroomapartment.com";
+            req.Headers["Origin"] = "http://www.ziroomapartment.com";
+            req.Headers["Pragma"] = "no-cache";
+            req.Headers["Upgrade-Insecure-Requests"] = "1";
+            req.Referer = "http://www.ziroomapartment.com/";
+            req.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36";
+            req.Method = "GET";
+
+            var resp = req.GetResponse();
+            var stream = resp.GetResponseStream();
+
+            using (var sw = new StreamReader(stream, Encoding.UTF8))
+            {
+                var str = sw.ReadToEnd();
+                MessageBox.Show(str);
+                Debug.WriteLine(sw.ReadToEnd());
+            }
         }
     }
 
