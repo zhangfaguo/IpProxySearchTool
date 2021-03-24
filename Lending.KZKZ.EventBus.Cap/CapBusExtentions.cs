@@ -1,5 +1,7 @@
 ﻿using DotNetCore.CAP;
 using DotNetCore.CAP.Internal;
+using DotNetCore.CAP.Processor;
+using DotNetCore.CAP.Transport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -60,6 +62,13 @@ namespace Lending.KZKZ.EventBus.Cap
         public void AddServices(IServiceCollection services)
         {
             services.Replace(new ServiceDescriptor(typeof(IConsumerServiceSelector), typeof(CapCustomerSelector), ServiceLifetime.Singleton));
+            services.Replace(new ServiceDescriptor(typeof(IDispatcher), typeof(CapDispatcher), ServiceLifetime.Singleton));
+            services.Replace(new ServiceDescriptor(typeof(IConsumerRegister), typeof(CapMyRegistor), ServiceLifetime.Singleton));
+            services.RemoveAll<IProcessingServer>();
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IProcessingServer, CapProcessingServer>());
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IProcessingServer, CapMyRegistor>());
+            services.Replace(new ServiceDescriptor(typeof(IConsumerClientFactory), typeof(MQConsumerClientFactory), ServiceLifetime.Singleton));
+
         }
     }
 }

@@ -276,7 +276,12 @@
   <ItemGroup>
     <Compile Include="CapBusExtentions.cs" />
     <Compile Include="CapCustomerSelector.cs" />
+    <Compile Include="CapDispatcher.cs" />
+    <Compile Include="CapMyRegistor.cs" />
     <Compile Include="CapPublish.cs" />
+    <Compile Include="MQConsumerClient.cs" />
+    <Compile Include="MQConsumerClientFactory.cs" />
+    <Compile Include="MyBootstrap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
