@@ -25,7 +25,7 @@ namespace IpProxy
         System.Collections.Concurrent.ConcurrentQueue<IpInfo> queue;
         System.Timers.Timer timer;
         bool closeTag = false;
-      public  List<IpInfo> list = new List<IpInfo>();
+        public List<IpInfo> list = new List<IpInfo>();
         List<Dict> dictList = new List<Dict>();
         string url = "";
         string regex = "";
@@ -90,7 +90,7 @@ namespace IpProxy
         {
             IocManager.TokenSource.Cancel();
             closeTag = false;
-     
+
             CloseProxy();
         }
 
@@ -100,73 +100,7 @@ namespace IpProxy
         {
             IocManager.TokenSource = new CancellationTokenSource();
             button5_Click(null, null);
-            var txt = this.textBox1.Text.Trim();
-
-            if (!string.IsNullOrEmpty(txt))
-            {
-                #region Input
-                var arr = txt.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                System.Threading.Tasks.Task.Factory.StartNew(() =>
-                {
-
-                    foreach (var item in arr)
-                    {
-                        try
-                        {
-                            if (IocManager.TokenSource.IsCancellationRequested)
-                            {
-                                return;
-                            }
-                            var client = (HttpWebRequest)WebRequest.Create(item);
-                            var uri = new Uri(item, UriKind.Absolute);
-                            client.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
-                            client.Headers["Cache-Control"] = "no-cache";
-                            client.Headers["Pragma"] = "no-cache";
-                            client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36";
-                            client.Host = uri.Host;
-                            client.Referer = item;
-                            client.Headers["Upgrade-Insecure-Requests"] = "1";
-                            var rep = (HttpWebResponse)client.GetResponse();
-                            var stream = rep.GetResponseStream();
-                            if (rep.ContentEncoding.ToLower().Contains("gzip"))
-                            {
-                                stream = new GZipStream(stream, CompressionMode.Decompress);
-                            }
-                            using (var sm = new StreamReader(stream))
-                            {
-                                var str = sm.ReadToEnd();
-                                var ms = System.Text.RegularExpressions.Regex.Matches(str, find);
-                                foreach (System.Text.RegularExpressions.Match mth in ms)
-                                {
-                                    if (IocManager.TokenSource.IsCancellationRequested)
-                                    {
-                                        return;
-                                    }
-                                    if (mth.Success)
-                                    {
-                                        Publish.Publish("Ip.Test", new IpInfo()
-                                        {
-                                            IP = mth.Groups["ip"].Value,
-                                            Port = int.Parse(mth.Groups["port"].Value),
-                                            url = item,
-                                            remote = url,
-                                            Test = regex
-                                        });
-                                    }
-                                }
-
-                            }
-
-                        }
-                        catch (Exception ex)
-                        {
-                            this.listBox2.Items.Add(ex.Message);
-                        }
-
-                    }
-                });
-                #endregion
-            }
+          
             new System.Threading.Thread(() =>
             {
                 for (var i = 0; i < dictList.Count; i++)
@@ -200,7 +134,7 @@ namespace IpProxy
                         }
                         using (var sm = new StreamReader(stream))
                         {
-                            
+
                             var str = sm.ReadToEnd();
                             var ms = System.Text.RegularExpressions.Regex.Matches(str, item.regex);
                             foreach (System.Text.RegularExpressions.Match mth in ms)
@@ -211,7 +145,7 @@ namespace IpProxy
                                 }
                                 if (mth.Success)
                                 {
-                                  
+
                                     Publish.Publish("Ip.Test", new IpInfo()
                                     {
                                         IP = mth.Groups["ip"].Value,
@@ -420,6 +354,45 @@ namespace IpProxy
                 IocManager.Services.AddSingleton(typeof(CustomerHandler));
                 IocManager.ServiceProvider.UseCap(IocManager.TokenSource.Token);
             });
+        }
+
+        private void button10_Click(object sender, EventArgs e)
+        {
+            button5_Click(null, null);
+            var txt = this.textBox1.Text.Trim();
+
+            if (!string.IsNullOrEmpty(txt))
+            {
+                #region Input
+                var arr = txt.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                System.Threading.Tasks.Task.Factory.StartNew(() =>
+                {
+
+                    foreach (var item in arr)
+                    {
+                        var u = item.Split(':');
+                        var port = int.Parse(u[1]);
+                        if (port > 0)
+                        {
+                            if (IocManager.TokenSource.IsCancellationRequested)
+                            {
+                                return;
+                            }
+                            Publish.Publish("Ip.Test", new IpInfo()
+                            {
+                                IP = u[0],
+                                Port = port,
+                                url = "123",
+                                remote = url,
+                                Test = regex
+                            });
+                        }
+
+
+                    }
+                });
+                #endregion
+            }
         }
     }
 
