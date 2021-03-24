@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DotNetCore.CAP.SqlServer</name>
+    </assembly>
+    <members>
+        <member name="P:DotNetCore.CAP.EFOptions.Schema">
+            <summary>
+            Gets or sets the schema to use when creating database objects.
+            Default is <see cref="F:DotNetCore.CAP.EFOptions.DefaultSchema" />.
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.EFOptions.DbContextType">
+            <summary>
+            EF DbContext
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.EFOptions.Version">
+            <summary>
+            Data version
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.SqlServerOptions.ConnectionString">
+            <summary>
+            Gets or sets the database's connection string that will be used to store database entities.
+            </summary>
+        </member>
+        <member name="M:DotNetCore.CAP.CapTransactionExtensions.BeginTransaction(System.Data.IDbConnection,DotNetCore.CAP.ICapPublisher,System.Boolean)">
+            <summary>
+            Start the CAP transaction
+            </summary>
+            <param name="dbConnection">The <see cref="T:System.Data.IDbConnection" />.</param>
+            <param name="publisher">The <see cref="T:DotNetCore.CAP.ICapPublisher" />.</param>
+            <param name="autoCommit">Whether the transaction is automatically committed when the message is published</param>
+            <returns>The <see cref="T:DotNetCore.CAP.ICapTransaction" /> object.</returns>
+        </member>
+        <member name="M:DotNetCore.CAP.CapTransactionExtensions.BeginTransaction(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade,DotNetCore.CAP.ICapPublisher,System.Boolean)">
+            <summary>
+            Start the CAP transaction
+            </summary>
+            <param name="database">The <see cref="T:Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade" />.</param>
+            <param name="publisher">The <see cref="T:DotNetCore.CAP.ICapPublisher" />.</param>
+            <param name="autoCommit">Whether the transaction is automatically committed when the message is published</param>
+            <returns>The <see cref="T:Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction" /> of EF dbcontext transaction object.</returns>
+        </member>
+    </members>
+</doc>

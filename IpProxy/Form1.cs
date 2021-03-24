@@ -1,4 +1,6 @@
-﻿using System;
+﻿using IpProxy.Core;
+using Lending.KZKZ.EventBus;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -10,7 +12,11 @@ using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Extensions.DependencyInjection;
+using Lending.KZKZ.EventBus.Cap;
 
 namespace IpProxy
 {
@@ -19,21 +25,24 @@ namespace IpProxy
         System.Collections.Concurrent.ConcurrentQueue<IpInfo> queue;
         System.Timers.Timer timer;
         bool closeTag = false;
-        List<IpInfo> list = new List<IpInfo>();
+      public  List<IpInfo> list = new List<IpInfo>();
         List<Dict> dictList = new List<Dict>();
         string url = "";
         string regex = "";
         string find = "";
+        public static Form1 Main { get; private set; }
+
+
+        IPublish Publish { get; }
         public Form1()
         {
             InitializeComponent();
+            Main = this;
+            Publish = IocManager.ServiceProvider.GetRequiredService<IPublish>();
             Control.CheckForIllegalCrossThreadCalls = false;
             queue = new System.Collections.Concurrent.ConcurrentQueue<IpInfo>();
-            timer = new System.Timers.Timer(1000);
-            timer.Elapsed += timer_Elapsed;
-            timer.Start();
-            url = "httsp://www.google.com";
-            regex = @"plus\.google\.com";
+            url = "https://www.google.com";
+            regex = @"\.google\.com";
             find = @"<td>(?<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>\s+<td>(?<port>\d+)</td>";
             var path = AppDomain.CurrentDomain.BaseDirectory + "config.db";
             if (System.IO.File.Exists(path))
@@ -69,13 +78,6 @@ namespace IpProxy
             this.FormClosed += Form1_FormClosed;
             closeTag = true;
 
-            for (var i = 0; i < 40; i++)
-            {
-                System.Threading.Tasks.Task.Factory.StartNew(() =>
-                {
-                    Check();
-                });
-            }
         }
         public void setValue(string _url, string _regex, string _find)
         {
@@ -86,19 +88,17 @@ namespace IpProxy
         }
         void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
+            IocManager.TokenSource.Cancel();
             closeTag = false;
-            timer.Stop();
-            timer.Dispose();
+     
             CloseProxy();
         }
 
-        void timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            this.label2.Text = queue.Count.ToString();
-        }
+
 
         private void button1_Click(object sender, EventArgs e)
         {
+            IocManager.TokenSource = new CancellationTokenSource();
             button5_Click(null, null);
             var txt = this.textBox1.Text.Trim();
 
@@ -113,6 +113,10 @@ namespace IpProxy
                     {
                         try
                         {
+                            if (IocManager.TokenSource.IsCancellationRequested)
+                            {
+                                return;
+                            }
                             var client = (HttpWebRequest)WebRequest.Create(item);
                             var uri = new Uri(item, UriKind.Absolute);
                             client.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
@@ -134,13 +138,19 @@ namespace IpProxy
                                 var ms = System.Text.RegularExpressions.Regex.Matches(str, find);
                                 foreach (System.Text.RegularExpressions.Match mth in ms)
                                 {
+                                    if (IocManager.TokenSource.IsCancellationRequested)
+                                    {
+                                        return;
+                                    }
                                     if (mth.Success)
                                     {
-                                        queue.Enqueue(new IpInfo()
+                                        Publish.Publish("Ip.Test", new IpInfo()
                                         {
                                             IP = mth.Groups["ip"].Value,
                                             Port = int.Parse(mth.Groups["port"].Value),
-                                            url = item
+                                            url = item,
+                                            remote = url,
+                                            Test = regex
                                         });
                                     }
                                 }
@@ -157,9 +167,15 @@ namespace IpProxy
                 });
                 #endregion
             }
-            new System.Threading.Thread(() => {
+            new System.Threading.Thread(() =>
+            {
                 for (var i = 0; i < dictList.Count; i++)
                 {
+
+                    if (IocManager.TokenSource.IsCancellationRequested)
+                    {
+                        return;
+                    }
                     var item = dictList[i];
 
 
@@ -184,25 +200,30 @@ namespace IpProxy
                         }
                         using (var sm = new StreamReader(stream))
                         {
+                            
                             var str = sm.ReadToEnd();
                             var ms = System.Text.RegularExpressions.Regex.Matches(str, item.regex);
                             foreach (System.Text.RegularExpressions.Match mth in ms)
                             {
+                                if (IocManager.TokenSource.IsCancellationRequested)
+                                {
+                                    return;
+                                }
                                 if (mth.Success)
                                 {
-                                    queue.Enqueue(new IpInfo()
+                                  
+                                    Publish.Publish("Ip.Test", new IpInfo()
                                     {
                                         IP = mth.Groups["ip"].Value,
                                         Port = int.Parse(mth.Groups["port"].Value),
-                                        url = item.url
+                                        url = item.url,
+                                        remote = url,
+                                        Test = regex
                                     });
                                 }
                             }
-
                         }
                         System.Threading.Thread.Sleep(2000);
-
-
                     }
                     catch (Exception ex)
                     {
@@ -211,12 +232,6 @@ namespace IpProxy
 
                 }
             }).Start();
-         
-
-
-
-
-
         }
 
         protected void SetProxy()
@@ -259,7 +274,7 @@ namespace IpProxy
             InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
         }
 
-        private void Check()
+        private async void Check()
         {
             IpInfo info = null;
             var id = System.Threading.Thread.CurrentThread.ManagedThreadId;
@@ -278,24 +293,25 @@ namespace IpProxy
                     listBox2.TopIndex = listBox2.Items.Count - (int)(listBox2.Height / listBox2.ItemHeight);
                     var client = (HttpWebRequest)WebRequest.Create(url);
                     var uri = new Uri(url, UriKind.Absolute);
-                    client.Timeout = 16000;
-                    client.ReadWriteTimeout = 16000;
+                    client.Timeout = 4000;
+                    client.ReadWriteTimeout = 4000;
                     client.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
                     client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36";
                     client.Host = uri.Host;
                     client.Referer = url;
                     client.Proxy = new WebProxy(info.IP, info.Port);
                     sw.Start();
-                    var rep = (HttpWebResponse)client.GetResponse();
+                    var rep = (HttpWebResponse)await client.GetResponseAsync().ConfigureAwait(false);
                     var stream = rep.GetResponseStream();
+                    sw.Stop();
                     if (rep.ContentEncoding.ToLower().Contains("gzip"))
                     {
                         stream = new GZipStream(stream, CompressionMode.Decompress);
                     }
                     using (var sm = new StreamReader(stream))
                     {
-                        var str = sm.ReadToEnd();
-                        sw.Stop();
+                        var str = await sm.ReadToEndAsync().ConfigureAwait(false);
+
                         if (System.Text.RegularExpressions.Regex.Match(str, regex).Success)
                         {
                             this.listBox1.Items.Add(string.Format("threed:{0}  {1}:{2},times:{3},url:{4}", id, info.IP, info.Port, sw.ElapsedMilliseconds, info.url));
@@ -304,6 +320,10 @@ namespace IpProxy
                         }
 
                     }
+                }
+                catch (TimeoutException)
+                {
+
                 }
                 catch (Exception ex)
                 {
@@ -325,7 +345,7 @@ namespace IpProxy
 
         private void button4_Click(object sender, EventArgs e)
         {
-            queue = new System.Collections.Concurrent.ConcurrentQueue<IpInfo>();
+            IocManager.TokenSource.Cancel();
         }
 
         private void button5_Click(object sender, EventArgs e)
@@ -395,39 +415,27 @@ namespace IpProxy
 
         private void button9_Click(object sender, EventArgs e)
         {
-            var cookie = new CookieContainer();
-
-            var req = (HttpWebRequest)WebRequest.Create("http://www.ziroomapartment.com/ZRAST/project/getDetail/yyczry.html");
-            req.CookieContainer = cookie;
-            req.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
-            req.Headers["Cache-Control"] = "no-cache";
-            req.Host = "www.ziroomapartment.com";
-            req.Headers["Origin"] = "http://www.ziroomapartment.com";
-            req.Headers["Pragma"] = "no-cache";
-            req.Headers["Upgrade-Insecure-Requests"] = "1";
-            req.Referer = "http://www.ziroomapartment.com/";
-            req.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36";
-            req.Method = "GET";
-
-            var resp = req.GetResponse();
-            var stream = resp.GetResponseStream();
-
-            using (var sw = new StreamReader(stream, Encoding.UTF8))
+            Task.Run(() =>
             {
-                var str = sw.ReadToEnd();
-                MessageBox.Show(str);
-                Debug.WriteLine(sw.ReadToEnd());
-            }
+                IocManager.Services.AddSingleton(typeof(CustomerHandler));
+                IocManager.ServiceProvider.UseCap(IocManager.TokenSource.Token);
+            });
         }
     }
 
-    class IpInfo
+    public class IpInfo
     {
         public string IP { get; set; }
 
         public int Port { get; set; }
 
         public string url { get; set; }
+
+
+        public string remote { get; set; }
+
+
+        public string Test { get; set; }
     }
 
     class Dict

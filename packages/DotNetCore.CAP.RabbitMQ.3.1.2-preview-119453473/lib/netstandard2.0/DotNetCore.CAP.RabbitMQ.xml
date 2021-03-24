@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DotNetCore.CAP.RabbitMQ</name>
+    </assembly>
+    <members>
+        <member name="F:DotNetCore.CAP.RabbitMQOptions.DefaultPass">
+            <summary>
+            Default password (value: "guest").
+            </summary>
+            <remarks>PLEASE KEEP THIS MATCHING THE DOC ABOVE.</remarks>
+        </member>
+        <member name="F:DotNetCore.CAP.RabbitMQOptions.DefaultUser">
+            <summary>
+            Default user name (value: "guest").
+            </summary>
+            <remarks>PLEASE KEEP THIS MATCHING THE DOC ABOVE.</remarks>
+        </member>
+        <member name="F:DotNetCore.CAP.RabbitMQOptions.DefaultVHost">
+            <summary>
+            Default virtual host (value: "/").
+            </summary>
+            <remarks> PLEASE KEEP THIS MATCHING THE DOC ABOVE.</remarks>
+        </member>
+        <member name="F:DotNetCore.CAP.RabbitMQOptions.DefaultExchangeName">
+            <summary>
+            Default exchange name (value: "cap.default.router").
+            </summary>
+        </member>
+        <member name="F:DotNetCore.CAP.RabbitMQOptions.ExchangeType">
+            <summary> The topic exchange type. </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.RabbitMQOptions.HostName">
+            <summary>
+            The host to connect to.
+            If you want connect to the cluster, you can assign like “192.168.1.111,192.168.1.112”
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.RabbitMQOptions.Password">
+            <summary>
+            Password to use when authenticating to the server.
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.RabbitMQOptions.UserName">
+            <summary>
+            Username to use when authenticating to the server.
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.RabbitMQOptions.VirtualHost">
+            <summary>
+            Virtual host to access during this connection.
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.RabbitMQOptions.ExchangeName">
+            <summary>
+            Topic exchange name when declare a topic exchange.
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.RabbitMQOptions.Port">
+            <summary>
+            The port to connect on.
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.RabbitMQOptions.QueueMessageExpires">
+            <summary>
+            Gets or sets queue message automatic deletion time (in milliseconds). Default 864000000 ms (10 days).
+            </summary>
+        </member>
+        <member name="P:DotNetCore.CAP.RabbitMQOptions.ConnectionFactoryOptions">
+            <summary>
+            RabbitMQ native connection factory options
+            </summary>
+        </member>
+    </members>
+</doc>
