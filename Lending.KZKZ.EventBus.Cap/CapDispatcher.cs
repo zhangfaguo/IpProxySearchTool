@@ -51,8 +51,7 @@ namespace Lending.KZKZ.EventBus.Cap
 
         public void EnqueueToExecute(MediumMessage message, ConsumerExecutorDescriptor descriptor)
         {
-            // _receivedChannel.Writer.TryWrite((message, descriptor));
-            var task = _executor.DispatchAsync(message, descriptor, _cts.Token).Result;
+             _executor.DispatchAsync(message, descriptor, _cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public void Dispose()

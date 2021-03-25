@@ -35,6 +35,7 @@ namespace Lending.KZKZ.EventBus.Cap
                     b.ConnectionString = connectString;
                     b.Schema = capSchema ?? "cap";
                 });
+                options.ConsumerThreadCount = 10;
                 options.DefaultGroup = qouteName;
                 options.RegisterExtension(new CapOptionsExtension());
             });

@@ -204,9 +204,11 @@ namespace Lending.KZKZ.EventBus.Cap
 					{
 						MediumMessage mediumMessage = _storage.StoreReceivedMessage(name, group, message);
 						mediumMessage.Origin = message;
+						
 						TracingAfter(tracingTimestamp, transportMessage, _serverAddress);
 						_dispatcher.EnqueueToExecute(mediumMessage, executor);
 						client.Commit(sender);
+
 					}
 				}
 				catch (Exception e)
